@@ -2,9 +2,10 @@
 
 import pkg_resources
 from django.template import Context, Template
+from django.utils.translation import ungettext
 
 from xblock.core import XBlock
-from xblock.fields import Scope, String, List
+from xblock.fields import Scope, String, List, Float, Integer
 from xblock.fragment import Fragment
 
 from lxml import etree
@@ -14,8 +15,8 @@ from StringIO import StringIO
 
 import textwrap
 
-class SubmitAndCompareXBlock(XBlock):
 
+class SubmitAndCompareXBlock(XBlock):
     '''
     Icon of the XBlock. Values : [other (default), video, problem]
     '''
@@ -24,38 +25,45 @@ class SubmitAndCompareXBlock(XBlock):
     '''
     Fields
     '''
-    display_name = String(display_name='Display Name',
+    display_name = String(
+        display_name='Display Name',
         default='Submit and Compare',
         scope=Scope.settings,
         help='This name appears in the horizontal navigation at the top of the page')
 
     student_answer = String(
-        default='', 
+        default='',
         scope=Scope.user_state,
         help='This is the student\'s answer to the question',
     )
-    
+
     your_answer_label = String(
-        default='Your Answer:', 
+        default='Your Answer:',
         scope=Scope.settings,
         help='Label for the text area containing the student\'s answer',
     )
 
     our_answer_label = String(
-        default='Our Answer:', 
+        default='Our Answer:',
         scope=Scope.settings,
         help='Label for the \'expert\' answer',
     )
-    
+
+    submit_button_label = String(
+        default='Submit and Compare',
+        scope=Scope.settings,
+        help='Label for the submit button',
+    )
+
     hints = List(
         default=[],
         scope=Scope.content,
         help='Hints for the question',
     )
-    
-    question_string =  String(help='Default question content ', 
+
+    question_string = String(
+        help='Default question content ',
         scope=Scope.content,
-        #default=etree.tostring(question_xml, encoding='unicode', pretty_print=True), 
         default=textwrap.dedent('''
             <submit_and_compare schema_version='1'>
                 <body>
@@ -69,9 +77,22 @@ class SubmitAndCompareXBlock(XBlock):
                     <hint>Once you've decided on your hypothesis, which data would help you determine if that hypothesis is correct or incorrect?</hint>
                 </demandhint>
             </submit_and_compare>
-        '''
-        ))
+        '''))
 
+    score = Float(
+        default=0.0,
+        scope=Scope.user_state,
+    )
+
+    weight = Integer(
+        display_name='Weight',
+        help='This assigns an integer value representing '
+             'the weight of this problem',
+        default=1,
+        scope=Scope.settings,
+    )
+
+    has_score = True
 
     '''
     Main functions
@@ -81,19 +102,21 @@ class SubmitAndCompareXBlock(XBlock):
         The primary view of the XBlock, shown to students
         when viewing courses.
         '''
+        problem_progress = self._get_problem_progress()
         prompt = self._get_body(self.question_string)
         explanation = self._get_explanation(self.question_string)
-        
+
         attributes = ''
         html = self.resource_string('static/html/submit_and_compare_view.html')
-        frag = Fragment(html.format(display_name = self.display_name,
-        							prompt = prompt, 
-                                    student_answer = self.student_answer, 
-                                    explanation = explanation, 
-                                    your_answer_label = self.your_answer_label,
-                                    our_answer_label = self.our_answer_label,
-                                    attributes = attributes
-                                    ))
+        frag = Fragment(html.format(display_name=self.display_name,
+                                    problem_progress=problem_progress,
+                                    prompt=prompt,
+                                    student_answer=self.student_answer,
+                                    explanation=explanation,
+                                    your_answer_label=self.your_answer_label,
+                                    our_answer_label=self.our_answer_label,
+                                    submit_button_label=self.submit_button_label,
+                                    attributes=attributes))
         frag.add_css(self.resource_string('static/css/submit_and_compare.css'))
         frag.add_javascript(self.resource_string('static/js/submit_and_compare_view.js'))
         frag.initialize_js('SubmitAndCompareXBlockInitView')
@@ -106,12 +129,14 @@ class SubmitAndCompareXBlock(XBlock):
         '''
         context = {
             'display_name': self.display_name,
+            'weight': self.weight,
             'xml_data': self.question_string,
             'your_answer_label': self.your_answer_label,
             'our_answer_label': self.our_answer_label,
+            'submit_button_label': self.submit_button_label,
         }
         html = self.render_template('static/html/submit_and_compare_edit.html', context)
-        
+
         frag = Fragment(html)
         frag.add_javascript(self.load_resource('static/js/submit_and_compare_edit.js'))
         frag.initialize_js('SubmitAndCompareXBlockInitEdit')
@@ -123,7 +148,18 @@ class SubmitAndCompareXBlock(XBlock):
         Save student answer
         '''
         self.student_answer = submissions['answer']
-        return {'success':True}
+
+        if self.student_answer:
+            self.score = self.weight
+        else:
+            self.score = 0.0
+
+        self._publish_grade()
+        result = {
+            'success': True,
+            'problem_progress': self._get_problem_progress(),
+        }
+        return result
 
     @XBlock.json_handler
     def studio_submit(self, submissions, suffix=''):
@@ -131,8 +167,15 @@ class SubmitAndCompareXBlock(XBlock):
         Save studio edits
         '''
         self.display_name = submissions['display_name']
+        try:
+            weight = int(submissions['weight'])
+        except ValueError:
+            weight = 0
+        if weight > 0:
+            self.weight = weight
         self.your_answer_label = submissions['your_answer_label']
         self.our_answer_label = submissions['our_answer_label']
+        self.submit_button_label = submissions['submit_button_label']
         xml_content = submissions['data']
 
         try:
@@ -150,26 +193,28 @@ class SubmitAndCompareXBlock(XBlock):
 
     @XBlock.json_handler
     def send_hints(self, submissions, suffix=''):
-        
-		tree = etree.parse(StringIO(self.question_string))
-		raw_hints = tree.xpath('/submit_and_compare/demandhint/hint')
-		
-		decorated_hints = list()
-		
-		if len(raw_hints) == 1:
-			hint = 'Hint: ' + etree.tostring(raw_hints[0], encoding='unicode')
-			decorated_hints.append(hint)
-		else:
-			for i in range(len(raw_hints)):
-				hint = 'Hint (' + str(i+1) + ' of ' + str(len(raw_hints)) + '): ' + etree.tostring(raw_hints[i], encoding='unicode')
-				decorated_hints.append(hint)
-		
-		hints = decorated_hints	
+        tree = etree.parse(StringIO(self.question_string))
+        raw_hints = tree.xpath('/submit_and_compare/demandhint/hint')
 
-		return {
-			'result': 'success',
-			'hints': hints,
-		}
+        decorated_hints = list()
+
+        if len(raw_hints) == 1:
+            hint = 'Hint: ' + etree.tostring(raw_hints[0], encoding='unicode')
+            decorated_hints.append(hint)
+        else:
+            for i in range(len(raw_hints)):
+                hint = 'Hint ({number} of {total}): {hint}'.format(
+                    number=i + 1,
+                    total=len(raw_hints),
+                    hint=etree.tostring(raw_hints[i], encoding='unicode'))
+                decorated_hints.append(hint)
+
+        hints = decorated_hints
+
+        return {
+            'result': 'success',
+            'hints': hints,
+        }
 
     @XBlock.json_handler
     def publish_event(self, data, suffix=''):
@@ -212,7 +257,7 @@ class SubmitAndCompareXBlock(XBlock):
         '''
         tree = etree.parse(StringIO(xmlstring))
         body = tree.xpath('/submit_and_compare/body')
-        
+
         return etree.tostring(body[0], encoding='unicode')
 
     def _get_explanation(self, xmlstring):
@@ -221,7 +266,7 @@ class SubmitAndCompareXBlock(XBlock):
         '''
         tree = etree.parse(StringIO(xmlstring))
         explanation = tree.xpath('/submit_and_compare/explanation')
-        
+
         return etree.tostring(explanation[0], encoding='unicode')
 
     def _get_unique_id(self):
@@ -231,3 +276,38 @@ class SubmitAndCompareXBlock(XBlock):
             # workaround for xblock workbench
             unique_id = 'workbench-workaround-id'
         return unique_id
+
+    def _get_problem_progress(self):
+        """
+        Returns a statement of progress for the XBlock, which depends
+        on the user's current score
+        """
+        result = ''
+        if self.score == 0.0:
+            result = ungettext(
+                '{weight} point possible',
+                '{weight} points possible',
+                self.weight,
+            ).format(
+                weight=self.weight
+            )
+        else:
+            score_string = '{0:g}'.format(self.score)
+            result = ungettext(
+                score_string + '/' + "{weight} point",
+                score_string + '/' + "{weight} points",
+                self.weight,
+            ).format(
+                weight=self.weight
+            )
+        return result
+
+    def _publish_grade(self):
+        self.runtime.publish(
+            self,
+            'grade',
+            {
+                'value': self.score,
+                'max_value': self.weight,
+            }
+        )
