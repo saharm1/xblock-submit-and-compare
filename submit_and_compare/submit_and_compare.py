@@ -29,7 +29,8 @@ class SubmitAndCompareXBlock(XBlock):
         display_name='Display Name',
         default='Submit and Compare',
         scope=Scope.settings,
-        help='This name appears in the horizontal navigation at the top of the page')
+        help='This name appears in the horizontal navigation at the top of the page',
+    )
 
     student_answer = String(
         default='',
@@ -108,15 +109,19 @@ class SubmitAndCompareXBlock(XBlock):
 
         attributes = ''
         html = self.resource_string('static/html/submit_and_compare_view.html')
-        frag = Fragment(html.format(display_name=self.display_name,
-                                    problem_progress=problem_progress,
-                                    prompt=prompt,
-                                    student_answer=self.student_answer,
-                                    explanation=explanation,
-                                    your_answer_label=self.your_answer_label,
-                                    our_answer_label=self.our_answer_label,
-                                    submit_button_label=self.submit_button_label,
-                                    attributes=attributes))
+        frag = Fragment(
+            html.format(
+                display_name=self.display_name,
+                problem_progress=problem_progress,
+                prompt=prompt,
+                student_answer=self.student_answer,
+                explanation=explanation,
+                your_answer_label=self.your_answer_label,
+                our_answer_label=self.our_answer_label,
+                submit_button_label=self.submit_button_label,
+                attributes=attributes,
+            )
+        )
         frag.add_css(self.resource_string('static/css/submit_and_compare.css'))
         frag.add_javascript(self.resource_string('static/js/submit_and_compare_view.js'))
         frag.initialize_js('SubmitAndCompareXBlockInitView')
@@ -184,7 +189,7 @@ class SubmitAndCompareXBlock(XBlock):
         except etree.XMLSyntaxError as e:
             return {
                 'result': 'error',
-                'message': e.message
+                'message': e.message,
             }
 
         return {
@@ -290,7 +295,7 @@ class SubmitAndCompareXBlock(XBlock):
                 '{weight} points possible',
                 self.weight,
             ).format(
-                weight=self.weight
+                weight=self.weight,
             )
         else:
             score_string = '{0:g}'.format(self.score)
@@ -299,7 +304,7 @@ class SubmitAndCompareXBlock(XBlock):
                 score_string + '/' + "{weight} points",
                 self.weight,
             ).format(
-                weight=self.weight
+                weight=self.weight,
             )
         return result
 
