@@ -1,5 +1,5 @@
 """
-Module Placeholder Docstring
+Tests for xblock-submit-and-compare
 """
 import unittest
 
@@ -16,7 +16,7 @@ from .submit_and_compare import SubmitAndCompareXBlock
 class SubmitAndCompareXblockTestCase(unittest.TestCase):
     # pylint: disable=too-many-instance-attributes, too-many-public-methods
     """
-    A complete suite of unit tests for the Free-text Response XBlock
+    A complete suite of unit tests for the Submit-and-compare XBlock
     """
     @classmethod
     def make_an_xblock(cls, **kw):
@@ -85,7 +85,7 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         """
         Helper method that returns the html of studio_view
         """
-        return self.xblock.studio_view(context=None).content
+        return self.xblock.studio_view().content
 
     def test_problem_progress_score_zero_weight_singular(self):
         # pylint: disable=invalid-name, protected-access
@@ -138,3 +138,43 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
             _('1.5/3 points'),
             self.xblock._get_problem_progress(),
         )
+
+    def test_used_attempts_feedback_blank(self):
+        # pylint: disable=invalid-name, protected-access
+        """
+        Tests that get_used_attempts_feedback returns no feedback when
+        appropriate
+        """
+        self.xblock.max_attempts = 0
+        self.assertEquals('', self.xblock._get_used_attempts_feedback())
+
+    def test_used_attempts_feedback_normal(self):
+        # pylint: disable=invalid-name, protected-access
+        """
+        Tests that get_used_attempts_feedback returns the expected feedback
+        """
+        self.xblock.max_attempts = 5
+        self.xblock.count_attempts = 3
+        self.assertEquals(
+            _('You have used 3 of 5 submissions'),
+            self.xblock._get_used_attempts_feedback(),
+        )
+
+    def test_submit_class_blank(self):
+        # pylint: disable=protected-access
+        """
+        Tests that get_submit_class returns a blank value when appropriate
+        """
+        self.xblock.max_attempts = 0
+        self.assertEquals('', self.xblock._get_submit_class())
+
+    def test_submit_class_nodisplay(self):
+        # pylint: disable=protected-access
+        """
+        Tests that get_submit_class returns the appropriate class
+        when the number of attempts has exceeded the maximum number of
+        permissable attempts
+        """
+        self.xblock.max_attempts = 5
+        self.xblock.count_attempts = 6
+        self.assertEquals('nodisplay', self.xblock._get_submit_class())
