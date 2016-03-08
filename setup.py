@@ -2,7 +2,7 @@
 
 import os
 from setuptools import setup
-
+from setuptools.command.test import test as TestCommand
 
 def package_data(pkg, root):
     """Generic function to find package_data for `pkg` under `root`."""
@@ -14,6 +14,25 @@ def package_data(pkg, root):
     return {pkg: data}
 
 
+class Tox(TestCommand):
+    user_options = [('tox-args=', 'a', "Arguments to pass to tox")]
+    def initialize_options(self):
+        TestCommand.initialize_options(self)
+        self.tox_args = None
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+    def run_tests(self):
+        # import here, cause outside the eggs aren't loaded
+        import tox
+        import shlex
+        args = self.tox_args
+        if args:
+            args = shlex.split(self.tox_args)
+        errno = tox.cmdline(args=args)
+        sys.exit(errno)
+
 setup(
     name='xblock-submit-and-compare',
     version='0.5',
@@ -23,6 +42,11 @@ setup(
     ],
     install_requires=[
         'XBlock',
+        'django',
+        'edx-opaque-keys',
+        'mock',
+        'django_nose',
+        'coverage',
     ],
     entry_points={
         'xblock.v1': [
@@ -30,4 +54,9 @@ setup(
         ]
     },
     package_data=package_data("submit_and_compare", "static"),
+    tests_require=[
+    ],
+    cmdclass={
+        'test': Tox,
+    },
 )
