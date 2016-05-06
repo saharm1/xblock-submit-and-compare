@@ -199,14 +199,15 @@ class SubmitAndCompareXBlock(XBlock):
         decorated_hints = list()
 
         if len(raw_hints) == 1:
-            hint = 'Hint: ' + etree.tostring(raw_hints[0], encoding='unicode')
+            hint = u'Hint: ' + etree.tostring(raw_hints[0], encoding='unicode')
             decorated_hints.append(hint)
         else:
             for i in range(len(raw_hints)):
-                hint = 'Hint ({number} of {total}): {hint}'.format(
+                hint = u'Hint ({number} of {total}): {hint}'.format(
                     number=i + 1,
                     total=len(raw_hints),
-                    hint=etree.tostring(raw_hints[i], encoding='unicode'))
+                    hint=etree.tostring(raw_hints[i], encoding='unicode'),
+                )
                 decorated_hints.append(hint)
 
         hints = decorated_hints
