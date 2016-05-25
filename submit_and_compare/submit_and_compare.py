@@ -125,7 +125,7 @@ class SubmitAndCompareXBlock(XBlock):
         display_name='Weight',
         help='This assigns an integer value representing '
              'the weight of this problem',
-        default=1,
+        default=0,
         scope=Scope.settings,
     )
 
@@ -242,9 +242,7 @@ class SubmitAndCompareXBlock(XBlock):
         Save studio edits
         '''
         self.display_name = submissions['display_name']
-        weight = self._get_natural_number(submissions['weight'])
-        if weight > 0:
-            self.weight = weight
+        self.weight = self._get_natural_number(submissions['weight'])
         max_attempts = self._get_natural_number(submissions['max_attempts'])
         if max_attempts > 0:
             self.max_attempts = max_attempts
@@ -397,23 +395,28 @@ class SubmitAndCompareXBlock(XBlock):
         Returns a statement of progress for the XBlock, which depends
         on the user's current score
         """
-        result = ''
-        if self.score == 0.0:
-            result = ungettext(
-                '{weight} point possible',
-                '{weight} points possible',
-                self.weight,
-            ).format(
-                weight=self.weight,
+        if self.weight == 0:
+            result = ''
+        elif self.score == 0.0:
+            result = "({})".format(
+                ungettext(
+                    '{weight} point possible',
+                    '{weight} points possible',
+                    self.weight,
+                ).format(
+                    weight=self.weight,
+                )
             )
         else:
             score_string = '{0:g}'.format(self.score)
-            result = ungettext(
-                score_string + '/' + "{weight} point",
-                score_string + '/' + "{weight} points",
-                self.weight,
-            ).format(
-                weight=self.weight,
+            result = "({})".format(
+                ungettext(
+                    score_string + '/' + "{weight} point",
+                    score_string + '/' + "{weight} points",
+                    self.weight,
+                ).format(
+                    weight=self.weight,
+                )
             )
         return result
 
