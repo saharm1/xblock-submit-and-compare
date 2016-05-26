@@ -72,7 +72,3 @@
 .submit_and_compare .button_holder.nodisplay {
     display: none;
 }
-
-.submit_and_compare .inline {
-    display: inline;
-}
