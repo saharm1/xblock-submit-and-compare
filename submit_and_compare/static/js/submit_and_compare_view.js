@@ -26,13 +26,13 @@ function SubmitAndCompareXBlockInitView(runtime, element) {
     var hints;
     var hint_counter = 0;
 
-    var xblock_id = $element.attr('data-usage-id');
+    var xblock_id = question_prompt.parent().parent().attr('data-usage-id');
     var cached_answer_id = xblock_id + '_cached_answer';
     var problem_progress_id = xblock_id + '_problem_progress';
     var used_attempts_feedback_id = xblock_id + '_used_attempts_feedback';
     if ($('body').data(cached_answer_id) !== undefined) {
         answer_textarea.text($('body').data(cached_answer_id));
-        problem_progress.text($('body').data(problem_progress_id));
+        problem_progress.text('(' + $('body').data(problem_progress_id) + ')');
         used_attempts_feedback.text($('body').data(used_attempts_feedback_id));
     }
 
@@ -59,7 +59,7 @@ function SubmitAndCompareXBlockInitView(runtime, element) {
         $('body').data(cached_answer_id, $('.answer',element).val());
         $('body').data(problem_progress_id, result.problem_progress);
         $('body').data(used_attempts_feedback_id, result.used_attempts_feedback);
-        problem_progress.text(result.problem_progress);
+        problem_progress.text('(' + result.problem_progress + ')');
         button_holder.addClass(result.submit_class);
         used_attempts_feedback.text(result.used_attempts_feedback);
 	}
