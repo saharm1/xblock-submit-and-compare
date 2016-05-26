@@ -69,7 +69,7 @@
     font-style: italic;
 }
 
-.submit_and_compare .button_holder.nodisplay {
+.submit_and_compare .nodisplay {
     display: none;
 }
 
