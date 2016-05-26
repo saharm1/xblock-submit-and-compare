@@ -87,6 +87,16 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         """
         return self.xblock.studio_view().content
 
+    def test_problem_progress_weight_zero(self):
+        # pylint: disable=invalid-name, protected-access
+        """
+        Tests that the the string returned by get_problem_progress
+        is blank when the weight of the problem is zero
+        """
+        self.xblock.score = 1
+        self.xblock.weight = 0
+        self.assertEquals('', self.xblock._get_problem_progress())
+
     def test_problem_progress_score_zero_weight_singular(self):
         # pylint: disable=invalid-name, protected-access
         """
@@ -96,7 +106,7 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         self.xblock.score = 0
         self.xblock.weight = 1
         self.assertEquals(
-            _('1 point possible'),
+            _('(1 point possible)'),
             self.xblock._get_problem_progress(),
         )
 
@@ -109,7 +119,7 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         self.xblock.score = 0
         self.xblock.weight = 3
         self.assertEquals(
-            _('3 points possible'),
+            _('(3 points possible)'),
             self.xblock._get_problem_progress(),
         )
 
@@ -122,7 +132,7 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         self.xblock.score = 1
         self.xblock.weight = 1
         self.assertEquals(
-            _('1/1 point'),
+            _('(1/1 point)'),
             self.xblock._get_problem_progress(),
         )
 
@@ -135,7 +145,7 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         self.xblock.score = 1.5
         self.xblock.weight = 3
         self.assertEquals(
-            _('1.5/3 points'),
+            _('(1.5/3 points)'),
             self.xblock._get_problem_progress(),
         )
 

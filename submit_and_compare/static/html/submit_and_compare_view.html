@@ -1,30 +1,30 @@
 <div class='submit_and_compare'>
 	<h2 class="problem_header">{display_name}</h2>
-	<div class="problem_progress">({problem_progress})</div>
+	<div class="problem_progress">{problem_progress}</div>
 	<div class='question_prompt'>{prompt}</div>
 	<div class='student_answer'>
-		<div class='your_answer' style='display:none'>{your_answer_label}</div>
+		<div class='your_answer nodisplay'>{your_answer_label}</div>
 		<textarea class='answer'>{student_answer}</textarea>
 	</div>
-	<div class='expert_answer' style='display:none'>
+	<div class='expert_answer nodisplay'>
 		<div class='our_answer'>{our_answer_label}</div>
 		<div class='explanation'>{explanation}</div>
 	</div>
-	<div class='hint' style='display:none'>{{hint}}</div>
+	<div class='hint nodisplay'>{{hint}}</div>
 	<div class='button_holder {submit_class}'>
-		<div style='display:inline'>
+		<div class='inline'>
 			<input 
 			class='submit_button' 
 			type='button' 
 			value='{submit_button_label}'></input>
 		</div>
-		<div class='hint_button_holder' style='display:none'>
+		<div class='hint_button_holder nodisplay'>
 			<input 
 			class='hint_button' 
 			type='button' 
 			value='Hint'></input>
 		</div>
-		<div style='display:inline'>
+		<div class='inline'>
 			<input 
 			class='reset_button' 
 			type='button' 
