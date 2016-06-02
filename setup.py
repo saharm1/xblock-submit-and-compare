@@ -43,7 +43,6 @@ setup(
     install_requires=[
         'XBlock',
         'django',
-        'edx-opaque-keys',
         'mock',
         'django_nose',
         'coverage',
