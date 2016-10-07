@@ -223,7 +223,7 @@ class SubmitAndCompareXBlock(XBlock):
                     self.count_attempts += 1
 
             if self.student_answer:
-                self.score = self.weight
+                self.score = 1.0
             else:
                 self.score = 0.0
 
@@ -408,7 +408,8 @@ class SubmitAndCompareXBlock(XBlock):
                 )
             )
         else:
-            score_string = '{0:g}'.format(self.score)
+            scaled_score = self.score * self.weight
+            score_string = '{0:g}'.format(scaled_score)
             result = "({})".format(
                 ungettext(
                     score_string + '/' + "{weight} point",
@@ -426,6 +427,6 @@ class SubmitAndCompareXBlock(XBlock):
             'grade',
             {
                 'value': self.score,
-                'max_value': self.weight,
+                'max_value': 1.0,
             }
         )
