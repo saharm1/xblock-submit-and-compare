@@ -142,10 +142,10 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         Tests that the the string returned by get_problem_progress
         when the weight of the problem is plural, and the score is positive
         """
-        self.xblock.score = 1.5
+        self.xblock.score = 1
         self.xblock.weight = 3
         self.assertEquals(
-            _('(1.5/3 points)'),
+            _('(3/3 points)'),
             self.xblock._get_problem_progress(),
         )
 
