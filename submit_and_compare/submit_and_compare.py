@@ -244,7 +244,7 @@ class SubmitAndCompareXBlock(XBlock):
         self.display_name = submissions['display_name']
         self.weight = self._get_natural_number(submissions['weight'])
         max_attempts = self._get_natural_number(submissions['max_attempts'])
-        if max_attempts > 0:
+        if max_attempts >= 0:
             self.max_attempts = max_attempts
         self.your_answer_label = submissions['your_answer_label']
         self.our_answer_label = submissions['our_answer_label']
