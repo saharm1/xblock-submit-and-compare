@@ -18,10 +18,7 @@ branches:
     only:
       - 'master'
 env:
-    - TOXENV=py27-dj14
     - TOXENV=py27-dj18
     - TOXENV=coveralls
     - TOXENV=pep8
-    # TODO: Add pylint and pyflakes compliance
-    # - TOXENV=pyflakes
-    # - TOXENV=pylint
+    - TOXENV=pylint

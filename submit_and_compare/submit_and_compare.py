@@ -1,6 +1,15 @@
-'''  Submit and Compare XBlock main Python class'''
+"""
+Submit and Compare XBlock main Python class
+"""
 
+from StringIO import StringIO
+
+import textwrap
+import logging
 import pkg_resources
+
+from lxml import etree
+
 from django.template import Context, Template
 from django.utils.translation import ungettext
 
@@ -8,27 +17,80 @@ from xblock.core import XBlock
 from xblock.fields import Scope, String, List, Float, Integer
 from xblock.fragment import Fragment
 
-from lxml import etree
-from xml.etree import ElementTree as ET
+LOG = logging.getLogger(__name__)
 
-from StringIO import StringIO
 
-import textwrap
+# Public
+def get_body(xmlstring):
+    # pylint: disable=no-member
+    """
+    Helper method
+    """
+    tree = etree.parse(StringIO(xmlstring))
+    body = tree.xpath('/submit_and_compare/body')
+    body_string = etree.tostring(body[0], encoding='unicode')
+    return body_string
 
-import logging
 
-log = logging.getLogger(__name__)
+# Private
+def _load_resource(resource_path):
+    """
+    Gets the content of a resource
+    """
+    resource_content = pkg_resources.resource_string(
+        __name__,
+        resource_path,
+    )
+    return unicode(resource_content)
+
+
+def _render_template(template_path, context):
+    """
+    Evaluate a template by resource path, applying the provided context
+    """
+    template_str = _load_resource(template_path)
+    return Template(template_str).render(Context(context))
+
+
+def _resource_string(path):
+    """
+    Handy helper for getting resources from our kit.
+    """
+    data = pkg_resources.resource_string(__name__, path)
+    return data.decode('utf8')
+
+
+def _get_explanation(xmlstring):
+    # pylint: disable=no-member
+    """
+    Helper method
+    """
+    tree = etree.parse(StringIO(xmlstring))
+    explanation = tree.xpath('/submit_and_compare/explanation')
+    explanation_string = etree.tostring(explanation[0], encoding='unicode')
+    return explanation_string
+
+
+def _convert_to_int(value_string):
+    try:
+        value = int(value_string)
+    except ValueError:
+        value = 0
+    return value
 
 
 class SubmitAndCompareXBlock(XBlock):
-    '''
-    Icon of the XBlock. Values : [other (default), video, problem]
-    '''
+    #  pylint: disable=too-many-ancestors, too-many-instance-attributes
+    """
+    Enables instructors to create questions with submit and compare responses.
+    """
+
+    # Icon of the XBlock. Values : [other (default), video, problem]
     icon_class = 'problem'
 
-    '''
+    """
     Fields
-    '''
+    """
     display_name = String(
         display_name='Display Name',
         default='Submit and Compare',
@@ -82,7 +144,7 @@ class SubmitAndCompareXBlock(XBlock):
     question_string = String(
         help='Default question content ',
         scope=Scope.content,
-        default=textwrap.dedent('''
+        default=textwrap.dedent("""
             <submit_and_compare schema_version='1'>
                 <body>
                     <p>
@@ -114,7 +176,7 @@ class SubmitAndCompareXBlock(XBlock):
                     </hint>
                 </demandhint>
             </submit_and_compare>
-        '''))
+        """))
 
     score = Float(
         default=0.0,
@@ -131,22 +193,26 @@ class SubmitAndCompareXBlock(XBlock):
 
     has_score = True
 
-    '''
+    """
     Main functions
-    '''
+    """
     def student_view(self, context=None):
-        '''
+        # pylint: disable=unused-argument
+        """
         The primary view of the XBlock, shown to students
         when viewing courses.
-        '''
+        """
         problem_progress = self._get_problem_progress()
         used_attempts_feedback = self._get_used_attempts_feedback()
         submit_class = self._get_submit_class()
-        prompt = self._get_body(self.question_string)
-        explanation = self._get_explanation(self.question_string)
-
+        prompt = get_body(self.question_string)
+        explanation = _get_explanation(
+            self.question_string
+        )
         attributes = ''
-        html = self.resource_string('static/html/submit_and_compare_view.html')
+        html = _resource_string(
+            'static/html/submit_and_compare_view.html'
+        )
         frag = Fragment(
             html.format(
                 display_name=self.display_name,
@@ -162,18 +228,24 @@ class SubmitAndCompareXBlock(XBlock):
                 attributes=attributes,
             )
         )
-        frag.add_css(self.resource_string('static/css/submit_and_compare.css'))
+        frag.add_css(
+            _resource_string(
+                'static/css/submit_and_compare.css'
+            ),
+        )
         frag.add_javascript(
-            self.resource_string('static/js/submit_and_compare_view.js'),
+            _resource_string(
+                'static/js/submit_and_compare_view.js'
+            ),
         )
         frag.initialize_js('SubmitAndCompareXBlockInitView')
         return frag
 
     def studio_view(self, context=None):
-        '''
+        """
         The secondary view of the XBlock, shown to teachers
         when editing the XBlock.
-        '''
+        """
         context = {
             'display_name': self.display_name,
             'weight': self.weight,
@@ -183,26 +255,28 @@ class SubmitAndCompareXBlock(XBlock):
             'our_answer_label': self.our_answer_label,
             'submit_button_label': self.submit_button_label,
         }
-        html = self.render_template(
+        html = _render_template(
             'static/html/submit_and_compare_edit.html',
             context,
         )
 
         frag = Fragment(html)
-        frag.add_javascript(
-            self.load_resource('static/js/submit_and_compare_edit.js'),
+        resource_content = _load_resource(
+            'static/js/submit_and_compare_edit.js'
         )
+        frag.add_javascript(resource_content)
         frag.initialize_js('SubmitAndCompareXBlockInitEdit')
         return frag
 
     @XBlock.json_handler
     def student_submit(self, submissions, suffix=''):
-        '''
+        # pylint: disable=unused-argument
+        """
         Save student answer
-        '''
+        """
         # when max_attempts == 0, the user can make unlimited attempts
         if self.max_attempts > 0 and self.count_attempts >= self.max_attempts:
-            log.error(
+            LOG.error(
                 'User has already exceeded the maximum '
                 'number of allowed attempts',
             )
@@ -238,26 +312,27 @@ class SubmitAndCompareXBlock(XBlock):
 
     @XBlock.json_handler
     def studio_submit(self, submissions, suffix=''):
-        '''
+        # pylint: disable=unused-argument
+        """
         Save studio edits
-        '''
+        """
         self.display_name = submissions['display_name']
-        self.weight = self._get_natural_number(submissions['weight'])
-        max_attempts = self._get_natural_number(submissions['max_attempts'])
+        self.weight = _convert_to_int(submissions['weight'])
+        max_attempts = _convert_to_int(submissions['max_attempts'])
         if max_attempts >= 0:
             self.max_attempts = max_attempts
         self.your_answer_label = submissions['your_answer_label']
         self.our_answer_label = submissions['our_answer_label']
         self.submit_button_label = submissions['submit_button_label']
         xml_content = submissions['data']
-
+        # pylint: disable=no-member
         try:
             etree.parse(StringIO(xml_content))
             self.question_string = xml_content
-        except etree.XMLSyntaxError as e:
+        except etree.XMLSyntaxError as error:
             return {
                 'result': 'error',
-                'message': e.message,
+                'message': error.message,
             }
 
         return {
@@ -266,25 +341,25 @@ class SubmitAndCompareXBlock(XBlock):
 
     @XBlock.json_handler
     def send_hints(self, submissions, suffix=''):
+        # pylint: disable=unused-argument
+        # pylint: disable=no-member
+        """
+        Build hints once for user
+        This is called once on page load and
+        js loop through hints on button click
+        """
         tree = etree.parse(StringIO(self.question_string))
         raw_hints = tree.xpath('/submit_and_compare/demandhint/hint')
-
         decorated_hints = list()
-
-        if len(raw_hints) == 1:
-            hint = u'Hint: ' + etree.tostring(raw_hints[0], encoding='unicode')
+        total_hints = len(raw_hints)
+        for i, raw_hint in enumerate(raw_hints):
+            hint = u'Hint ({number} of {total}): {hint}'.format(
+                number=i,
+                total=total_hints,
+                hint=etree.tostring(raw_hint, encoding='unicode'),
+            )
             decorated_hints.append(hint)
-        else:
-            for i in range(len(raw_hints)):
-                hint = u'Hint ({number} of {total}): {hint}'.format(
-                    number=i + 1,
-                    total=len(raw_hints),
-                    hint=etree.tostring(raw_hints[i], encoding='unicode'),
-                )
-                decorated_hints.append(hint)
-
         hints = decorated_hints
-
         return {
             'result': 'success',
             'hints': hints,
@@ -292,6 +367,10 @@ class SubmitAndCompareXBlock(XBlock):
 
     @XBlock.json_handler
     def publish_event(self, data, suffix=''):
+        # pylint: disable=unused-argument
+        """
+        Publish events
+        """
         try:
             event_type = data.pop('event_type')
         except KeyError:
@@ -306,49 +385,6 @@ class SubmitAndCompareXBlock(XBlock):
 
         return {'result': 'success'}
 
-    '''
-    Util functions
-    '''
-    def load_resource(self, resource_path):
-        '''
-        Gets the content of a resource
-        '''
-        resource_content = pkg_resources.resource_string(
-            __name__,
-            resource_path,
-        )
-        return unicode(resource_content)
-
-    def render_template(self, template_path, context={}):
-        '''
-        Evaluate a template by resource path, applying the provided context
-        '''
-        template_str = self.load_resource(template_path)
-        return Template(template_str).render(Context(context))
-
-    def resource_string(self, path):
-        '''Handy helper for getting resources from our kit.'''
-        data = pkg_resources.resource_string(__name__, path)
-        return data.decode('utf8')
-
-    def _get_body(self, xmlstring):
-        '''
-        Helper method
-        '''
-        tree = etree.parse(StringIO(xmlstring))
-        body = tree.xpath('/submit_and_compare/body')
-
-        return etree.tostring(body[0], encoding='unicode')
-
-    def _get_explanation(self, xmlstring):
-        '''
-        Helper method
-        '''
-        tree = etree.parse(StringIO(xmlstring))
-        explanation = tree.xpath('/submit_and_compare/explanation')
-
-        return etree.tostring(explanation[0], encoding='unicode')
-
     def _get_unique_id(self):
         try:
             unique_id = self.location.name
@@ -356,13 +392,6 @@ class SubmitAndCompareXBlock(XBlock):
             # workaround for xblock workbench
             unique_id = 'workbench-workaround-id'
         return unique_id
-
-    def _get_natural_number(self, value_string):
-        try:
-            value = int(value_string)
-        except ValueError:
-            value = 0
-        return value
 
     def _get_used_attempts_feedback(self):
         """
