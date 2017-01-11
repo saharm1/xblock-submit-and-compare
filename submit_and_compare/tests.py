@@ -11,6 +11,7 @@ from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from xblock.field_data import DictFieldData
 
 from .submit_and_compare import SubmitAndCompareXBlock
+from .submit_and_compare import get_body
 
 
 class SubmitAndCompareXblockTestCase(unittest.TestCase):
@@ -32,7 +33,6 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         return xblock
 
     def setUp(self):
-        # pylint: disable=super-method-not-called
         self.xblock = SubmitAndCompareXblockTestCase.make_an_xblock()
         self.client = Client()
 
@@ -44,7 +44,7 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         student_view_html = self.student_view_html()
         self.assertIn(self.xblock.display_name, student_view_html)
         self.assertIn(
-            self.xblock._get_body(self.xblock.question_string),
+            get_body(self.xblock.question_string),
             student_view_html,
         )
         self.assertIn(self.xblock._get_problem_progress(), student_view_html)
@@ -55,8 +55,11 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         """
         studio_view_html = self.studio_view_html()
         self.assertIn(self.xblock.display_name, studio_view_html)
+        xblock_body = get_body(
+            self.xblock.question_string
+        )
         self.assertIn(
-            cgi.escape(self.xblock._get_body(self.xblock.question_string)),
+            cgi.escape(xblock_body),
             studio_view_html,
         )
         self.assertIn(str(self.xblock.max_attempts), studio_view_html)
