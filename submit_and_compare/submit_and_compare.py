@@ -354,7 +354,7 @@ class SubmitAndCompareXBlock(XBlock):
         raw_hints = tree.xpath('/submit_and_compare/demandhint/hint')
         decorated_hints = list()
         total_hints = len(raw_hints)
-        for i, raw_hint in enumerate(raw_hints):
+        for i, raw_hint in enumerate(raw_hints, 1):
             hint = u'Hint ({number} of {total}): {hint}'.format(
                 number=i,
                 total=total_hints,
