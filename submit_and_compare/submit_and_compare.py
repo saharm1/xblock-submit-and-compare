@@ -290,11 +290,7 @@ class SubmitAndCompareXBlock(XBlock):
             self.student_answer = submissions['answer']
 
             if submissions['action'] == 'submit':
-                # the user can make an unlimited number of attempts
-                if self.max_attempts == 0:
-                    self.count_attempts = 1
-                else:
-                    self.count_attempts += 1
+                self.count_attempts += 1
 
             if self.student_answer:
                 self.score = 1.0
