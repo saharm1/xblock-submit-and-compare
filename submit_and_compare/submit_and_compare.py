@@ -272,6 +272,16 @@ class SubmitAndCompareXBlock(XBlock):
         frag.initialize_js('SubmitAndCompareXBlockInitEdit')
         return frag
 
+    def max_score(self):
+        """
+        Returns the configured number of possible points for this component.
+        Arguments:
+            None
+        Returns:
+            float: The number of possible points for this component
+        """
+        return self.weight
+
     @XBlock.json_handler
     def student_submit(self, submissions, suffix=''):
         # pylint: disable=unused-argument
