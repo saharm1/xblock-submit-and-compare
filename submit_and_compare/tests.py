@@ -191,3 +191,11 @@ class SubmitAndCompareXblockTestCase(unittest.TestCase):
         self.xblock.max_attempts = 5
         self.xblock.count_attempts = 6
         self.assertEquals('nodisplay', self.xblock._get_submit_class())
+
+    def test_max_score(self):
+        """
+        Tests max_score function
+        Should return the weight
+        """
+        self.xblock.weight = 4
+        self.assertEquals(self.xblock.weight, self.xblock.max_score())
