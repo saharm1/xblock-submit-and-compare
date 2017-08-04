@@ -3,9 +3,9 @@ function SubmitAndCompareXBlockInitView(runtime, element) {
     
     var handlerUrl = runtime.handlerUrl(element, 'student_submit');
     var hintUrl = runtime.handlerUrl(element, 'send_hints');
-	var publishUrl = runtime.handlerUrl(element, 'publish_event');
+    var publishUrl = runtime.handlerUrl(element, 'publish_event');
 
-	var $element = $(element);
+    var $element = $(element);
     var $xblocksContainer = $('#seq_content');
 	
     var submit_button = $element.find('.submit_button');
