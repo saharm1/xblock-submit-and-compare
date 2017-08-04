@@ -3,9 +3,10 @@ function SubmitAndCompareXBlockInitView(runtime, element) {
     
     var handlerUrl = runtime.handlerUrl(element, 'student_submit');
     var hintUrl = runtime.handlerUrl(element, 'send_hints');
-	var publishUrl = runtime.handlerUrl(element, 'publish_event');
+    var publishUrl = runtime.handlerUrl(element, 'publish_event');
 
-	var $element = $(element);
+    var $element = $(element);
+    var $xblocksContainer = $('#seq_content');
 	
     var submit_button = $element.find('.submit_button');
     var hint_button = $element.find('hint_button');
@@ -30,10 +31,10 @@ function SubmitAndCompareXBlockInitView(runtime, element) {
     var cached_answer_id = xblock_id + '_cached_answer';
     var problem_progress_id = xblock_id + '_problem_progress';
     var used_attempts_feedback_id = xblock_id + '_used_attempts_feedback';
-    if ($('body').data(cached_answer_id) !== undefined) {
-        answer_textarea.text($('body').data(cached_answer_id));
-        problem_progress.text($('body').data(problem_progress_id));
-        used_attempts_feedback.text($('body').data(used_attempts_feedback_id));
+    if ($xblocksContainer.data(cached_answer_id) !== undefined) {
+        answer_textarea.text($xblocksContainer.data(cached_answer_id));
+        problem_progress.text($xblocksContainer.data(problem_progress_id));
+        used_attempts_feedback.text($xblocksContainer.data(used_attempts_feedback_id));
     }
 
     $.ajax({
@@ -56,9 +57,9 @@ function SubmitAndCompareXBlockInitView(runtime, element) {
     }
 
 	function post_submit(result) {
-        $('body').data(cached_answer_id, $('.answer',element).val());
-        $('body').data(problem_progress_id, result.problem_progress);
-        $('body').data(used_attempts_feedback_id, result.used_attempts_feedback);
+        $xblocksContainer.data(cached_answer_id, $('.answer',element).val());
+        $xblocksContainer.data(problem_progress_id, result.problem_progress);
+        $xblocksContainer.data(used_attempts_feedback_id, result.used_attempts_feedback);
         problem_progress.text(result.problem_progress);
         button_holder.addClass(result.submit_class);
         used_attempts_feedback.text(result.used_attempts_feedback);
