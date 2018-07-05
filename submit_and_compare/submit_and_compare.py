@@ -16,6 +16,8 @@ from django.utils.translation import ungettext
 from xblock.core import XBlock
 from xblock.fields import Scope, String, List, Float, Integer
 from xblock.fragment import Fragment
+from xblockutils.studio_editable import StudioEditableXBlockMixin
+from .mixins import EnforceDueDates
 
 LOG = logging.getLogger(__name__)
 
@@ -79,7 +81,7 @@ def _convert_to_int(value_string):
     return value
 
 
-class SubmitAndCompareXBlock(XBlock):
+class SubmitAndCompareXBlock(EnforceDueDates, StudioEditableXBlockMixin, XBlock):
     #  pylint: disable=too-many-ancestors, too-many-instance-attributes
     """
     Enables instructors to create questions with submit and compare responses.
@@ -223,6 +225,7 @@ class SubmitAndCompareXBlock(XBlock):
                 problem_progress=problem_progress,
                 used_attempts_feedback=used_attempts_feedback,
                 submit_class=submit_class,
+		is_past_due=self.is_past_due(),
                 prompt=prompt,
                 student_answer=self.student_answer,
                 explanation=explanation,
@@ -293,6 +296,16 @@ class SubmitAndCompareXBlock(XBlock):
             LOG.error(
                 'User has already exceeded the maximum '
                 'number of allowed attempts',
+            )
+            result = {
+                'success': False,
+                'problem_progress': self._get_problem_progress(),
+                'submit_class': self._get_submit_class(),
+                'used_attempts_feedback': self._get_used_attempts_feedback(),
+            }
+	elif self.is_past_due():
+            LOG.error(
+                'This problem is past due',
             )
             result = {
                 'success': False,
@@ -427,7 +440,7 @@ class SubmitAndCompareXBlock(XBlock):
         Returns the css class for the submit button
         """
         result = ''
-        if self.max_attempts > 0 and self.count_attempts >= self.max_attempts:
+        if self.max_attempts > 0 and self.count_attempts >= self.max_attempts or self.is_past_due():
             result = 'nodisplay'
         return result
 
