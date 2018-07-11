@@ -8,14 +8,18 @@ import textwrap
 import logging
 import pkg_resources
 
+from enum import Enum
 from lxml import etree
-
+from django.db import IntegrityError
+from django.template.loader import get_template
 from django.template import Context, Template
 from django.utils.translation import ungettext
 
 from xblock.core import XBlock
 from xblock.fields import Scope, String, List, Float, Integer
 from xblock.fragment import Fragment
+from xblockutils.studio_editable import StudioEditableXBlockMixin
+from .mixins import EnforceDueDates
 
 LOG = logging.getLogger(__name__)
 
@@ -79,7 +83,7 @@ def _convert_to_int(value_string):
     return value
 
 
-class SubmitAndCompareXBlock(XBlock):
+class SubmitAndCompareXBlock(EnforceDueDates, StudioEditableXBlockMixin, XBlock):
     #  pylint: disable=too-many-ancestors, too-many-instance-attributes
     """
     Enables instructors to create questions with submit and compare responses.
@@ -223,7 +227,8 @@ class SubmitAndCompareXBlock(XBlock):
                 problem_progress=problem_progress,
                 used_attempts_feedback=used_attempts_feedback,
                 submit_class=submit_class,
-                prompt=prompt,
+                not_past_due=not self.is_past_due(),
+		prompt=prompt,
                 student_answer=self.student_answer,
                 explanation=explanation,
                 your_answer_label=self.your_answer_label,
@@ -258,7 +263,8 @@ class SubmitAndCompareXBlock(XBlock):
             'your_answer_label': self.your_answer_label,
             'our_answer_label': self.our_answer_label,
             'submit_button_label': self.submit_button_label,
-        }
+            'is_past_due': self.is_past_due(),
+	}
         html = _render_template(
             'static/html/submit_and_compare_edit.html',
             context,
@@ -293,6 +299,16 @@ class SubmitAndCompareXBlock(XBlock):
             LOG.error(
                 'User has already exceeded the maximum '
                 'number of allowed attempts',
+            )
+            result = {
+                'success': False,
+                'problem_progress': self._get_problem_progress(),
+                'submit_class': self._get_submit_class(),
+                'used_attempts_feedback': self._get_used_attempts_feedback(),
+            }
+	elif self.is_past_due():
+	    LOG.error(
+                'This problem is past due',
             )
             result = {
                 'success': False,
@@ -427,7 +443,7 @@ class SubmitAndCompareXBlock(XBlock):
         Returns the css class for the submit button
         """
         result = ''
-        if self.max_attempts > 0 and self.count_attempts >= self.max_attempts:
+        if self.max_attempts > 0 and self.count_attempts >= self.max_attempts or self.is_past_due():
             result = 'nodisplay'
         return result
 
