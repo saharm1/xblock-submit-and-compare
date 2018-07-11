@@ -79,7 +79,7 @@ def _convert_to_int(value_string):
     return value
 
 
-class SubmitAndCompareXBlock(EnforceDueDates, StudioEditableXBlockMixin, XBlock):
+class SubmitAndCompareXBlock(EnforceDueDates, XBlock):
     #  pylint: disable=too-many-ancestors, too-many-instance-attributes
     """
     Enables instructors to create questions with submit and compare responses.
