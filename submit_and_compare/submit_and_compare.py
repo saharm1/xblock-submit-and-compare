@@ -8,10 +8,7 @@ import textwrap
 import logging
 import pkg_resources
 
-from enum import Enum
 from lxml import etree
-from django.db import IntegrityError
-from django.template.loader import get_template
 from django.template import Context, Template
 from django.utils.translation import ungettext
 
