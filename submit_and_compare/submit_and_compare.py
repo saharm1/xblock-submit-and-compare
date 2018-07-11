@@ -15,7 +15,6 @@ from django.utils.translation import ungettext
 from xblock.core import XBlock
 from xblock.fields import Scope, String, List, Float, Integer
 from xblock.fragment import Fragment
-from xblockutils.studio_editable import StudioEditableXBlockMixin
 from .mixins import EnforceDueDates
 
 LOG = logging.getLogger(__name__)
@@ -224,7 +223,6 @@ class SubmitAndCompareXBlock(EnforceDueDates, StudioEditableXBlockMixin, XBlock)
                 problem_progress=problem_progress,
                 used_attempts_feedback=used_attempts_feedback,
                 submit_class=submit_class,
-                not_past_due=not self.is_past_due(),
 		prompt=prompt,
                 student_answer=self.student_answer,
                 explanation=explanation,
@@ -260,7 +258,6 @@ class SubmitAndCompareXBlock(EnforceDueDates, StudioEditableXBlockMixin, XBlock)
             'your_answer_label': self.your_answer_label,
             'our_answer_label': self.our_answer_label,
             'submit_button_label': self.submit_button_label,
-            'is_past_due': self.is_past_due(),
 	}
         html = _render_template(
             'static/html/submit_and_compare_edit.html',
@@ -292,27 +289,16 @@ class SubmitAndCompareXBlock(EnforceDueDates, StudioEditableXBlockMixin, XBlock)
         Save student answer
         """
         # when max_attempts == 0, the user can make unlimited attempts
-        if self.max_attempts > 0 and self.count_attempts >= self.max_attempts:
+        success = False
+	if self.max_attempts > 0 and self.count_attempts >= self.max_attempts:
             LOG.error(
                 'User has already exceeded the maximum '
                 'number of allowed attempts',
             )
-            result = {
-                'success': False,
-                'problem_progress': self._get_problem_progress(),
-                'submit_class': self._get_submit_class(),
-                'used_attempts_feedback': self._get_used_attempts_feedback(),
-            }
 	elif self.is_past_due():
 	    LOG.error(
                 'This problem is past due',
             )
-            result = {
-                'success': False,
-                'problem_progress': self._get_problem_progress(),
-                'submit_class': self._get_submit_class(),
-                'used_attempts_feedback': self._get_used_attempts_feedback(),
-            }
         else:
             self.student_answer = submissions['answer']
 
@@ -326,14 +312,15 @@ class SubmitAndCompareXBlock(EnforceDueDates, StudioEditableXBlockMixin, XBlock)
 
             self._publish_grade()
             self._publish_problem_check()
-
-            result = {
-                'success': True,
-                'problem_progress': self._get_problem_progress(),
-                'submit_class': self._get_submit_class(),
-                'used_attempts_feedback': self._get_used_attempts_feedback(),
-            }
-        return result
+	    success = True
+	
+	result = {
+	    'success':success,
+	    'problem_progress': self._get_problem_progress(),
+            'submit_class': self._get_submit_class(),
+            'used_attempts_feedback': self._get_used_attempts_feedback(),
+        }
+	return result
 
     @XBlock.json_handler
     def studio_submit(self, submissions, suffix=''):
@@ -435,12 +422,21 @@ class SubmitAndCompareXBlock(EnforceDueDates, StudioEditableXBlockMixin, XBlock)
             )
         return result
 
+    def _can_submit(self):
+	if self.is_past_due():
+	    return False
+	if self.max_attempts == 0:
+	    return True
+	if self.count_attempts < self.max_attempts:
+	    return True
+	return False    
+
     def _get_submit_class(self):
         """
         Returns the css class for the submit button
         """
         result = ''
-        if self.max_attempts > 0 and self.count_attempts >= self.max_attempts or self.is_past_due():
+        if self._can_submit():
             result = 'nodisplay'
         return result
 
