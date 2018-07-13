@@ -10,6 +10,7 @@ import pkg_resources
 
 from lxml import etree
 from django.template import Context, Template
+from django.template.loader import get_template
 from django.utils.translation import ungettext
 
 from xblock.core import XBlock
@@ -193,6 +194,29 @@ class SubmitAndCompareXBlock(EnforceDueDates, XBlock):
 
     has_score = True
 
+    def build_fragment(
+            self,
+            template, 
+            context_dict,
+            initialize_js_func,
+            additional_css=[],
+            additional_js=[],
+    ):
+        #  pylint: disable=dangerous-default-value, too-many-arguments
+        """
+        Creates a fragment for display.
+        """
+        context = Context(context_dict)
+        fragment = Fragment(template.render(context))
+        for item in additional_css:
+            url = self.runtime.local_resource_url(self, item)
+            fragment.add_css_url(url)
+        for item in additional_js:
+            url = self.runtime.local_resource_url(self, item)
+            fragment.add_javascript_url(url)
+        fragment.initialize_js(initialize_js_func)
+        return fragment
+
     """
     Main functions
     """
@@ -200,7 +224,7 @@ class SubmitAndCompareXBlock(EnforceDueDates, XBlock):
     # See: https://openedx.atlassian.net/wiki/display/MA/Course+Blocks+API
     # section 'View @supports(multi_device) decorator'
     @XBlock.supports('multi_device')
-    def student_view(self, context=None):
+    def student_view(self, context={}):
         # pylint: disable=unused-argument
         """
         The primary view of the XBlock, shown to students
@@ -214,36 +238,35 @@ class SubmitAndCompareXBlock(EnforceDueDates, XBlock):
             self.question_string
         )
         attributes = ''
-        html = _resource_string(
-            'static/html/submit_and_compare_view.html'
+        context.update(
+            {
+                'display_name': self.display_name,
+                'problem_progress': problem_progress,
+                'used_attempts_feedback': used_attempts_feedback,
+                'submit_class': submit_class,
+                'prompt': prompt,
+                'student_answer': self.student_answer,
+                'explanation': explanation,
+                'your_answer_label': self.your_answer_label,
+                'our_answer_label': self.our_answer_label,
+                'submit_button_label': self.submit_button_label,
+                'attributes': attributes,
+                'is_past_due':self.is_past_due(),
+            }
         )
-        frag = Fragment(
-            html.format(
-                display_name=self.display_name,
-                problem_progress=problem_progress,
-                used_attempts_feedback=used_attempts_feedback,
-                submit_class=submit_class,
-		prompt=prompt,
-                student_answer=self.student_answer,
-                explanation=explanation,
-                your_answer_label=self.your_answer_label,
-                our_answer_label=self.our_answer_label,
-                submit_button_label=self.submit_button_label,
-                attributes=attributes,
-            )
+        template = get_template('submit_and_compare_view.html')
+        fragment = self.build_fragment(
+            template,
+            context,
+            initialize_js_func='SubmitAndCompareXBlockInitView',
+            additional_css=[
+                'static/css/submit_and_compare.css',
+            ],
+            additional_js=[
+                'static/js/submit_and_compare_view.js',
+            ],
         )
-        frag.add_css(
-            _resource_string(
-                'static/css/submit_and_compare.css'
-            ),
-        )
-        frag.add_javascript(
-            _resource_string(
-                'static/js/submit_and_compare_view.js'
-            ),
-        )
-        frag.initialize_js('SubmitAndCompareXBlockInitView')
-        return frag
+        return fragment
 
     def studio_view(self, context=None):
         """

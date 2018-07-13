@@ -13,6 +13,7 @@ TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 
 INSTALLED_APPS = (
     'django_nose',
+    'submit_and_compare',
 )
 
 SECRET_KEY = 'submit_and_compare_SECRET_KEY'
