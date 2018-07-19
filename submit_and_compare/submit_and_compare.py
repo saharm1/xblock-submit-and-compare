@@ -198,9 +198,6 @@ class SubmitAndCompareXBlock(XBlock):
             self,
             template, 
             context_dict,
-            initialize_js_func,
-            additional_css=[],
-            additional_js=[],
     ):
         #  pylint: disable=dangerous-default-value, too-many-arguments
         """
@@ -208,13 +205,6 @@ class SubmitAndCompareXBlock(XBlock):
         """
         context = Context(context_dict)
         fragment = Fragment(template.render(context))
-        for item in additional_css:
-            url = self.runtime.local_resource_url(self, item)
-            fragment.add_css_url(url)
-        for item in additional_js:
-            url = self.runtime.local_resource_url(self, item)
-            fragment.add_javascript_url(url)
-        fragment.initialize_js(initialize_js_func)
         return fragment
 
     """
@@ -257,15 +247,19 @@ class SubmitAndCompareXBlock(XBlock):
         template = get_template('submit_and_compare_view.html')
         fragment = self.build_fragment(
             template,
-            context,
-            initialize_js_func='SubmitAndCompareXBlockInitView',
-            additional_css=[
-                'static/css/submit_and_compare.css',
-            ],
-            additional_js=[
-                'static/js/submit_and_compare_view.js',
-            ],
+            context
         )
+        fragment.add_css(
+            _resource_string(
+                'static/css/submit_and_compare.css'
+            ),
+        )
+        fragment.add_javascript(
+            _resource_string(
+                'static/js/submit_and_compare_view.js'
+            ),
+        )
+        fragment.initialize_js('SubmitAndCompareXBlockInitView')
         return fragment
 
 
