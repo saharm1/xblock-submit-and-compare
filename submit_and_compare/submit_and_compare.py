@@ -11,11 +11,14 @@ import pkg_resources
 from lxml import etree
 
 from django.template import Context, Template
+from django.template.loader import get_template
 from django.utils.translation import ungettext
 
 from xblock.core import XBlock
 from xblock.fields import Scope, String, List, Float, Integer
 from xblock.fragment import Fragment
+
+from .mixins import EnforceDueDates
 
 LOG = logging.getLogger(__name__)
 
@@ -28,7 +31,7 @@ def get_body(xmlstring):
     """
     tree = etree.parse(StringIO(xmlstring))
     body = tree.xpath('/submit_and_compare/body')
-    body_string = etree.tostring(body[0], encoding='unicode')
+    body_string = etree.tostring(body[0], method='text', encoding='unicode')
     return body_string
 
 
@@ -67,7 +70,7 @@ def _get_explanation(xmlstring):
     """
     tree = etree.parse(StringIO(xmlstring))
     explanation = tree.xpath('/submit_and_compare/explanation')
-    explanation_string = etree.tostring(explanation[0], encoding='unicode')
+    explanation_string = etree.tostring(explanation[0], method='text', encoding='unicode')
     return explanation_string
 
 
@@ -79,7 +82,7 @@ def _convert_to_int(value_string):
     return value
 
 
-class SubmitAndCompareXBlock(XBlock):
+class SubmitAndCompareXBlock(EnforceDueDates, XBlock):
     #  pylint: disable=too-many-ancestors, too-many-instance-attributes
     """
     Enables instructors to create questions with submit and compare responses.
@@ -193,6 +196,18 @@ class SubmitAndCompareXBlock(XBlock):
 
     has_score = True
 
+    def build_fragment(
+            self,
+            template, 
+            context_dict,
+    ):
+        """
+        Creates a fragment for display.
+        """
+        context = Context(context_dict)
+        fragment = Fragment(template.render(context))
+        return fragment
+
     """
     Main functions
     """
@@ -214,36 +229,40 @@ class SubmitAndCompareXBlock(XBlock):
             self.question_string
         )
         attributes = ''
-        html = _resource_string(
-            'static/html/submit_and_compare_view.html'
+        context.update(
+            {
+                'display_name': self.display_name,
+                'problem_progress': problem_progress,
+                'used_attempts_feedback': used_attempts_feedback,
+                'submit_class': submit_class,
+                'prompt': prompt,
+                'student_answer': self.student_answer,
+                'explanation': explanation,
+                'your_answer_label': self.your_answer_label,
+                'our_answer_label': self.our_answer_label,
+                'submit_button_label': self.submit_button_label,
+                'attributes': attributes,
+                'is_past_due': self.is_past_due(),
+            }
         )
-        frag = Fragment(
-            html.format(
-                display_name=self.display_name,
-                problem_progress=problem_progress,
-                used_attempts_feedback=used_attempts_feedback,
-                submit_class=submit_class,
-                prompt=prompt,
-                student_answer=self.student_answer,
-                explanation=explanation,
-                your_answer_label=self.your_answer_label,
-                our_answer_label=self.our_answer_label,
-                submit_button_label=self.submit_button_label,
-                attributes=attributes,
-            )
+        template = get_template('submit_and_compare_view.html')
+        fragment = self.build_fragment(
+            template,
+            context
         )
-        frag.add_css(
+        fragment.add_css(
             _resource_string(
                 'static/css/submit_and_compare.css'
             ),
         )
-        frag.add_javascript(
+        fragment.add_javascript(
             _resource_string(
                 'static/js/submit_and_compare_view.js'
             ),
         )
-        frag.initialize_js('SubmitAndCompareXBlockInitView')
-        return frag
+        fragment.initialize_js('SubmitAndCompareXBlockInitView')
+        return fragment
+
 
     def studio_view(self, context=None):
         """
@@ -260,7 +279,7 @@ class SubmitAndCompareXBlock(XBlock):
             'submit_button_label': self.submit_button_label,
         }
         html = _render_template(
-            'static/html/submit_and_compare_edit.html',
+            'templates/submit_and_compare_edit.html',
             context,
         )
 
@@ -289,17 +308,16 @@ class SubmitAndCompareXBlock(XBlock):
         Save student answer
         """
         # when max_attempts == 0, the user can make unlimited attempts
+        success = False
         if self.max_attempts > 0 and self.count_attempts >= self.max_attempts:
             LOG.error(
                 'User has already exceeded the maximum '
                 'number of allowed attempts',
             )
-            result = {
-                'success': False,
-                'problem_progress': self._get_problem_progress(),
-                'submit_class': self._get_submit_class(),
-                'used_attempts_feedback': self._get_used_attempts_feedback(),
-            }
+        elif self.is_past_due():
+            LOG.debug(
+                'This problem is past due',
+            )
         else:
             self.student_answer = submissions['answer']
 
@@ -313,13 +331,14 @@ class SubmitAndCompareXBlock(XBlock):
 
             self._publish_grade()
             self._publish_problem_check()
+            success = True
 
-            result = {
-                'success': True,
-                'problem_progress': self._get_problem_progress(),
-                'submit_class': self._get_submit_class(),
-                'used_attempts_feedback': self._get_used_attempts_feedback(),
-            }
+        result = {
+            'success': success,
+            'problem_progress': self._get_problem_progress(),
+            'submit_class': self._get_submit_class(),
+            'used_attempts_feedback': self._get_used_attempts_feedback(),
+        }
         return result
 
     @XBlock.json_handler
@@ -422,12 +441,21 @@ class SubmitAndCompareXBlock(XBlock):
             )
         return result
 
+    def _can_submit(self):
+        if self.is_past_due():
+            return False
+        if self.max_attempts == 0:
+            return True
+        if self.count_attempts < self.max_attempts:
+            return True
+        return False
+
     def _get_submit_class(self):
         """
         Returns the css class for the submit button
         """
         result = ''
-        if self.max_attempts > 0 and self.count_attempts >= self.max_attempts:
+        if not self._can_submit():
             result = 'nodisplay'
         return result
 
