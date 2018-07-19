@@ -251,7 +251,7 @@ class SubmitAndCompareXBlock(EnforceDueDates, XBlock):
                 'our_answer_label': self.our_answer_label,
                 'submit_button_label': self.submit_button_label,
                 'attributes': attributes,
-                'is_past_due':self.is_past_due(),
+                'is_past_due': self.is_past_due(),
             }
         )
         template = get_template('submit_and_compare_view.html')
@@ -281,7 +281,7 @@ class SubmitAndCompareXBlock(EnforceDueDates, XBlock):
             'your_answer_label': self.your_answer_label,
             'our_answer_label': self.our_answer_label,
             'submit_button_label': self.submit_button_label,
-	}
+        }
         html = _render_template(
             'static/html/submit_and_compare_edit.html',
             context,
@@ -313,13 +313,13 @@ class SubmitAndCompareXBlock(EnforceDueDates, XBlock):
         """
         # when max_attempts == 0, the user can make unlimited attempts
         success = False
-	if self.max_attempts > 0 and self.count_attempts >= self.max_attempts:
+        if self.max_attempts > 0 and self.count_attempts >= self.max_attempts:
             LOG.error(
                 'User has already exceeded the maximum '
                 'number of allowed attempts',
             )
-	elif self.is_past_due():
-	    LOG.error(
+        elif self.is_past_due():
+            LOG.debug(
                 'This problem is past due',
             )
         else:
@@ -335,15 +335,15 @@ class SubmitAndCompareXBlock(EnforceDueDates, XBlock):
 
             self._publish_grade()
             self._publish_problem_check()
-	    success = True
-	
-	result = {
-	    'success':success,
-	    'problem_progress': self._get_problem_progress(),
+            success = True
+
+        result = {
+            'success':success,
+            'problem_progress': self._get_problem_progress(),
             'submit_class': self._get_submit_class(),
             'used_attempts_feedback': self._get_used_attempts_feedback(),
         }
-	return result
+        return result
 
     @XBlock.json_handler
     def studio_submit(self, submissions, suffix=''):
@@ -446,13 +446,13 @@ class SubmitAndCompareXBlock(EnforceDueDates, XBlock):
         return result
 
     def _can_submit(self):
-	if self.is_past_due():
-	    return False
-	if self.max_attempts == 0:
-	    return True
-	if self.count_attempts < self.max_attempts:
-	    return True
-	return False    
+        if self.is_past_due():
+            return False
+        if self.max_attempts == 0:
+            return True
+        if self.count_attempts < self.max_attempts:
+            return True
+        return False
 
     def _get_submit_class(self):
         """
